@@ -87,7 +87,13 @@ body {
   box-shadow: 0 0 0 4px #fff, 0 0 22px 6px rgba(255,200,40,.85), 0 6px 14px rgba(31,45,61,.2);
 }
 .item.will::before { content: "✨"; position: absolute; top: -18px; right: -10px; font-size: 28px; }
-.item.will.caught .face { animation: pop .6s forwards; }
+.item.will.caught .face, .item.kem.caught .face { animation: pop .6s forwards; }
+.item.kem {
+  border-radius: 999px; color: #fff; letter-spacing: .02em; text-shadow: 0 2px 0 rgba(160,30,90,.35);
+  background: radial-gradient(circle at 30% 25%, rgba(255,255,255,.7), transparent 45%), linear-gradient(135deg, #ffb3d9, #f15bb5 55%, #b5179e);
+  box-shadow: 0 0 0 4px #fff, 0 0 22px 6px rgba(241,91,181,.75), 0 6px 14px rgba(31,45,61,.2);
+}
+.item.kem::before { content: "🌸"; position: absolute; top: -18px; right: -10px; font-size: 28px; }
 .item.dino { background: none; filter: drop-shadow(0 6px 6px rgba(31,45,61,.25)); }
 .item.dino span { display: block; transform: scaleX(-1); }
 .item.deco { pointer-events: none; opacity: .55; }
@@ -213,7 +219,7 @@ h2 { font-family: var(--display); font-weight: 600; font-size: 22px; margin: 0; 
   <section class="overlay" id="startScreen">
     <div class="card">
       <h1><span class="a">Flying</span> <span class="b">Numbers</span> 🦖</h1>
-      <p class="lead">Listen to the number, then tap it when it flies past. Numbers go up to 20. Tap the dinosaurs for fun, and catch Will for fireworks! 3 tries each turn.</p>
+      <p class="lead">Listen to the number, then tap it when it flies past. Numbers go up to 20. Tap the dinosaurs for fun, and catch Will and Kem for fireworks! 3 tries each turn.</p>
       <div class="row" role="group" aria-label="How many turns">
         <span class="label">Turns</span>
         <button class="chip" type="button" data-turns="5" aria-pressed="false">5 turns</button>
@@ -309,12 +315,14 @@ h2 { font-family: var(--display); font-weight: 600; font-size: 22px; margin: 0; 
   };
 
   // ---------- Speech ----------
-  let voice = null;
+  let voice = null, viVoice = null;
   function pickVoice() {
     if (!hasSpeech) return;
-    const vs = speechSynthesis.getVoices().filter(v => /^en(-|_)/i.test(v.lang));
+    const all = speechSynthesis.getVoices();
+    const vs = all.filter(v => /^en(-|_)/i.test(v.lang));
     voice = vs.find(v => /samantha|google us english|aria|jenny|zira/i.test(v.name))
          || vs.find(v => /en.US/i.test(v.lang)) || vs[0] || null;
+    viVoice = all.find(v => /^vi(-|_|$)/i.test(v.lang)) || null;   // iPad: "Linh"
   }
   if (hasSpeech) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
   function speak(text) {
@@ -324,6 +332,17 @@ h2 { font-family: var(--display); font-weight: 600; font-size: 22px; margin: 0; 
       const u = new SpeechSynthesisUtterance(text);
       u.lang = "en-US"; u.rate = .85; u.pitch = 1.1;
       if (voice) u.voice = voice;
+      speechSynthesis.speak(u);
+    } catch {}
+  }
+  // Family jokes are said in Vietnamese.
+  function speakVi(text) {
+    if (!hasSpeech) return;
+    try {
+      if (speechSynthesis.speaking || speechSynthesis.pending) speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = "vi-VN"; u.rate = .95; u.pitch = 1.15;
+      if (viVoice) u.voice = viVoice;
       speechSynthesis.speak(u);
     } catch {}
   }
@@ -437,7 +456,8 @@ h2 { font-family: var(--display); font-weight: 600; font-size: 22px; margin: 0; 
       S.sinceTarget++;
       const r = Math.random();
       const targetShown = numbersOnScreen().has(S.target);
-      if (!items.some(it => it.kind === "will") && Math.random() < .07) { kind = "will"; }
+      const bonus = Math.random() < .5 ? "will" : "kem";
+      if (!items.some(it => it.kind === bonus) && Math.random() < .12) { kind = bonus; }
       else if (!targetShown && (S.sinceTarget >= 6 || (r < .18 && S.sinceTarget >= 2))) { kind = "num"; value = S.target; S.sinceTarget = 0; }
       else if (r < .4) { kind = "dino"; }
       else { kind = "num"; value = distractor(); }
@@ -454,18 +474,19 @@ h2 { font-family: var(--display); font-weight: 600; font-size: 22px; margin: 0; 
       el.style.fontSize = (value >= 10 ? sz * .48 : sz * .58) + "px";
       el.innerHTML = `<span class="face">${value}</span>`;
       el.setAttribute("aria-label", `Number ${value}`);
-    } else if (kind === "will") {
+    } else if (kind === "will" || kind === "kem") {
+      const label = kind === "will" ? "Will" : "Kem";
       el.style.width = sz * 1.5 + "px"; el.style.height = sz * .85 + "px";
       el.style.fontSize = sz * .42 + "px";
-      el.innerHTML = `<span class="face">Will</span>`;
-      el.setAttribute("aria-label", "Will");
+      el.innerHTML = `<span class="face">${label}</span>`;
+      el.setAttribute("aria-label", label);
     } else {
       el.style.fontSize = sz * .8 + "px";
       el.innerHTML = `<span class="face"><span>${DINOS[rand(0, 1)]}</span></span>`;
       el.setAttribute("aria-label", "Dinosaur");
     }
-    // Will flies a bit faster than the numbers.
-    const T = deco ? 6.5 : flightTime() * rnd(.9, 1.15) * (kind === "will" ? .65 : 1);
+    // Will and Kem fly a bit faster than the numbers.
+    const T = deco ? 6.5 : flightTime() * rnd(.9, 1.15) * (kind === "will" || kind === "kem" ? .65 : 1);
     const it = { el, kind, value, ...launch(sz, T, g), dead: false, frozen: false, deco,
       rot: kind === "dino" ? rnd(0, 360) : 0, spin: kind === "dino" ? rnd(-200, 200) : 0,
       wob: rnd(0, 6.28), sz };
@@ -565,16 +586,17 @@ h2 { font-family: var(--display); font-weight: 600; font-size: 22px; margin: 0; 
   function tap(it) {
     if (it.dead || S.paused) return;
     const now = performance.now();
-    if (it.kind === "will") {
+    if (it.kind === "will" || it.kind === "kem") {
       it.dead = true; it.frozen = true;
       it.el.classList.add("caught");
       fireworks(it.x + it.el.offsetWidth / 2, it.y + it.el.offsetHeight / 2);
-      speak("Will, perfect!");
+      speakVi(it.kind === "will" ? "Will í ẹ" : "Kem xinh đẹp");
       setTimeout(() => removeItem(it), 900);
       return;
     }
     if (it.kind === "dino") {
       sfx.rawr();
+      speakVi("Dinosaur mà");
       it.el.classList.remove("jump"); void it.el.offsetWidth; it.el.classList.add("jump");
       return;
     }

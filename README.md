@@ -4,7 +4,7 @@ Game luyện nghe số tiếng Anh cho bé (tối ưu cho iPad). Máy đọc m�
 
 - Chọn 5 hoặc 10 lượt, mỗi lượt sai tối đa 3 lần
 - Số bị thẩy theo vòng cung từ dưới lên, trên xuống, hai bên
-- Khủng long kêu "rawr" khi chạm, chữ **Will** bay qua thì có pháo hoa
+- Chạm khủng long: "Dinosaur mà"; chạm chữ **Will**: "Will í ẹ"; chạm chữ **Kem**: "Kem xinh đẹp" (kèm pháo hoa)
 - Pause, chơi lại, đồng hồ, sao, bảng xếp hạng có điền tên
 
 ## Chạy trên Mac mini
