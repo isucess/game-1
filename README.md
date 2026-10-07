@@ -10,7 +10,7 @@ Game luyện nghe số tiếng Anh cho bé (tối ưu cho iPad). Máy đọc m�
 ## Chạy trên Mac mini
 
 ```bash
-git clone https://github.com/kntgit0309/flying-numbers.git ~/projects/flying-numbers
+git clone https://github.com/isucess/game-1.git ~/projects/flying-numbers
 cd ~/projects/flying-numbers
 bash deploy/install-macmini.sh        # tự chọn port trống từ 8090
 ```
