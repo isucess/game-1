@@ -569,6 +569,7 @@ h2 { font-family: var(--display); font-weight: 600; font-size: 22px; margin: 0; 
       it.dead = true; it.frozen = true;
       it.el.classList.add("caught");
       fireworks(it.x + it.el.offsetWidth / 2, it.y + it.el.offsetHeight / 2);
+      speak("Will, perfect!");
       setTimeout(() => removeItem(it), 900);
       return;
     }
