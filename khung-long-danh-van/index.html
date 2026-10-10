@@ -84,11 +84,23 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
   position: absolute; left: 0; bottom: 2px; z-index: 4; pointer-events: none; display: grid; place-items: end center;
   line-height: 1; filter: drop-shadow(0 8px 6px rgba(31,45,61,.25)); transition: transform .18s ease-out;
 }
-.player span { display: inline-block; transform: scaleX(var(--face, -1)); transition: transform .12s; }
-.player.chomp span { animation: chomp .6s; }
-.player.hop span { animation: hop .5s; }
-@keyframes chomp { 0%,100%{transform:scaleX(var(--face,-1)) scale(1)} 30%{transform:scaleX(var(--face,-1)) scale(1.25) rotate(-8deg)} 60%{transform:scaleX(var(--face,-1)) scale(.92)} }
-@keyframes hop { 0%,100%{transform:scaleX(var(--face,-1)) translateY(0)} 45%{transform:scaleX(var(--face,-1)) translateY(-40px)} }
+/* Front view, mouth wide open to the sky. The head (upper jaw) drops onto the lower jaw to bite. */
+.dino-svg { display: block; width: var(--dsize, 140px); height: auto; overflow: visible;
+  transform: rotate(var(--tilt, 0deg)); transform-origin: 50% 90%; transition: transform .15s ease-out; }
+.dino-svg .jaw-up { animation: breathe 1.6s ease-in-out infinite; }
+.dino-svg .eye { animation: blink 4s infinite; transform-box: fill-box; transform-origin: center; }
+.player.chomp .jaw-up { animation: bite-up .55s ease-in-out; }
+.player.chomp .jaw-low { animation: bite-low .55s ease-in-out; }
+.player.chomp .dino-svg { animation: squash .55s ease-in-out; }
+.player.yuck .dino-svg { animation: yuck .5s ease-in-out; }
+.player.hop .dino-svg { animation: hop .5s ease-out; }
+@keyframes breathe { 0%,100%{transform:translateY(-12px)} 50%{transform:translateY(-18px)} }
+@keyframes blink { 0%,94%,100%{transform:scaleY(1)} 97%{transform:scaleY(.1)} }
+@keyframes bite-up { 0%{transform:translateY(-12px)} 22%{transform:translateY(40px)} 40%{transform:translateY(8px)} 60%{transform:translateY(40px)} 100%{transform:translateY(-12px)} }
+@keyframes bite-low { 0%,100%{transform:translateY(0)} 22%,60%{transform:translateY(-6px)} 40%{transform:translateY(0)} }
+@keyframes squash { 0%,100%{transform:scale(1,1)} 22%,60%{transform:scale(1.08,.94)} 40%{transform:scale(.98,1.02)} }
+@keyframes yuck { 0%,100%{transform:rotate(0)} 20%{transform:rotate(-10deg)} 40%{transform:rotate(9deg)} 60%{transform:rotate(-7deg)} 80%{transform:rotate(5deg)} }
+@keyframes hop { 0%,100%{transform:translateY(0)} 45%{transform:translateY(-36px)} }
 
 .move {
   position: absolute; bottom: 14px; z-index: 7; width: clamp(76px, 12vmin, 110px); height: clamp(76px, 12vmin, 110px);
@@ -236,7 +248,7 @@ h2 { font-family: var(--display); font-weight: 700; font-size: 22px; margin: 0; 
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .item.wrong .face, .item.caught .face, .item.jump .face, .player.chomp span, .player.hop span { animation: none; }
+  .item.wrong .face, .item.caught .face, .item.jump .face, .dino-svg .jaw-up, .dino-svg .eye, .player .dino-svg { animation: none !important; }
   .player, .lane-glow { transition: none; }
   .spark { display: none; }
 }
@@ -263,7 +275,28 @@ h2 { font-family: var(--display); font-weight: 700; font-size: 22px; margin: 0; 
     <span class="palm" style="left:-10px" aria-hidden="true">🌴</span>
     <span class="palm" style="right:-6px" aria-hidden="true">🌿</span>
     <div class="lane-glow" id="laneGlow" aria-hidden="true"></div>
-    <div class="player" id="player" aria-hidden="true"><span>🦖</span></div>
+    <div class="player" id="player" aria-hidden="true">
+      <svg class="dino-svg" viewBox="0 0 200 220" aria-hidden="true">
+        <ellipse cx="54" cy="212" rx="26" ry="10" fill="#2f7a37"/><ellipse cx="146" cy="212" rx="26" ry="10" fill="#2f7a37"/>
+        <ellipse cx="100" cy="190" rx="84" ry="30" fill="#3f9a4a"/>
+        <ellipse cx="100" cy="114" rx="68" ry="48" fill="#7a1f3d"/>
+        <ellipse cx="100" cy="130" rx="40" ry="14" fill="#ff7b93"/>
+        <g class="jaw-up">
+          <path d="M66 32 L78 4 L90 28 Z M93 24 L105 -2 L117 24 Z M120 28 L132 4 L140 34 Z" fill="#ff9f1c"/>
+          <path d="M14 120 Q10 26 100 22 Q190 26 186 120 Q160 98 100 96 Q40 98 14 120 Z" fill="#5cbf5a"/>
+          <g fill="#fff"><path d="M41 106 L48 121 L55 106 Z"/><path d="M69 98 L76 113 L83 98 Z"/><path d="M117 98 L124 113 L131 98 Z"/><path d="M145 106 L152 121 L159 106 Z"/></g>
+          <ellipse cx="38" cy="88" rx="12" ry="7" fill="#ff8fa3" opacity=".55"/><ellipse cx="162" cy="88" rx="12" ry="7" fill="#ff8fa3" opacity=".55"/>
+          <g class="eye"><circle cx="68" cy="58" r="17" fill="#fff"/><circle cx="70" cy="51" r="8" fill="#1f2d3d"/><circle cx="73" cy="48" r="3" fill="#fff"/></g>
+          <g class="eye"><circle cx="132" cy="58" r="17" fill="#fff"/><circle cx="130" cy="51" r="8" fill="#1f2d3d"/><circle cx="133" cy="48" r="3" fill="#fff"/></g>
+          <ellipse cx="91" cy="84" rx="3.5" ry="2.5" fill="#2f7a37"/><ellipse cx="109" cy="84" rx="3.5" ry="2.5" fill="#2f7a37"/>
+        </g>
+        <g class="jaw-low">
+          <path d="M18 118 Q22 192 100 194 Q178 192 182 118 Q160 140 100 142 Q40 140 18 118 Z" fill="#5cbf5a"/>
+          <ellipse cx="100" cy="174" rx="46" ry="13" fill="#c9ef9c"/>
+          <g fill="#fff"><path d="M43 131 L50 116 L57 131 Z"/><path d="M70 139 L77 124 L84 139 Z"/><path d="M116 139 L123 124 L130 139 Z"/><path d="M143 131 L150 116 L157 131 Z"/></g>
+        </g>
+      </svg>
+    </div>
     <button class="move" id="leftBtn" type="button" aria-label="Sang trái">◀</button>
     <button class="move" id="rightBtn" type="button" aria-label="Sang phải">▶</button>
   </main>
@@ -491,7 +524,7 @@ h2 { font-family: var(--display); font-weight: 700; font-size: 22px; margin: 0; 
   function fallTime() { return Math.max(4.6, 7 - S.turn * 0.22); }   // seconds from top to ground
 
   // ---------- Lanes, player, falling eggs ----------
-  const P = { lanes: 5, lane: 2, face: -1 };
+  const P = { lanes: 5, lane: 2 };
   function geom() {
     const W = arena.clientWidth, H = arena.clientHeight;
     const laneW = W / P.lanes;
@@ -507,18 +540,20 @@ h2 { font-family: var(--display); font-weight: 700; font-size: 22px; margin: 0; 
   }
   function placePlayer() {
     const g = geom(), pl = $("player"), glow = $("laneGlow");
-    pl.style.width = g.laneW + "px"; pl.style.fontSize = g.dino + "px";
+    pl.style.width = g.laneW + "px"; pl.style.setProperty("--dsize", g.dino + "px");
     pl.style.transform = `translateX(${P.lane * g.laneW}px)`;
-    pl.style.setProperty("--face", P.face);
     glow.style.width = g.laneW + "px";
     glow.style.transform = `translateX(${P.lane * g.laneW}px)`;
   }
   function move(dir) {
     if (S.paused || S.phase === "end") return;
     const next = Math.max(0, Math.min(P.lanes - 1, P.lane + dir));
-    P.face = dir < 0 ? 1 : -1;            // the emoji faces left, so flip it to face where it walks
     if (next !== P.lane) { P.lane = next; tone(520 + next * 60, .06, "triangle", .08); }
     placePlayer();
+    // Lean into the step for a moment.
+    const svg = $("player").querySelector(".dino-svg");
+    svg.style.setProperty("--tilt", (dir < 0 ? -8 : 8) + "deg");
+    clearTimeout(move.t); move.t = setTimeout(() => svg.style.setProperty("--tilt", "0deg"), 160);
   }
 
   function spawn(deco = false) {
@@ -581,15 +616,20 @@ h2 { font-family: var(--display); font-weight: 700; font-size: 22px; margin: 0; 
   function removeItem(it) { it.el.remove(); items = items.filter(x => x !== it); }
   function clearItems() { items.forEach(it => it.el.remove()); items = []; }
 
+  function dinoAct(cls) {
+    const pl = $("player");
+    pl.classList.remove("chomp", "hop", "yuck"); void pl.offsetWidth; pl.classList.add(cls);
+  }
   // The egg slides into the dinosaur's mouth.
   function feedDino(it, g = geom()) {
     const x = it.lane * g.laneW + (g.laneW - it.w) / 2;
     it.frozen = true;
     it.el.classList.add("eaten");
-    it.el.style.transform = `translate3d(${x}px, ${g.H - g.dino * .7}px, 0) scale(.2)`;
+    // Into the open mouth (about the middle of the drawing), then the jaws snap shut.
+    const mouthY = g.H - 2 - g.dino * 1.1 * (1 - 118 / 220);
+    it.el.style.transform = `translate3d(${x}px, ${mouthY - it.h / 2}px, 0) scale(.25)`;
     setTimeout(() => removeItem(it), 360);
-    const pl = $("player");
-    pl.classList.remove("chomp", "hop"); void pl.offsetWidth; pl.classList.add("chomp");
+    dinoAct("chomp");
   }
 
   // ---------- Game flow ----------
@@ -640,7 +680,7 @@ h2 { font-family: var(--display); font-weight: 700; font-size: 22px; margin: 0; 
     timers = [];
     Object.assign(S, { phase: "intro", paused: false, turn: 0, score: 0, miss: 0, lastTarget: "", elapsed: 0, results: [] });
     savedId = null; bag = []; targetBag = [];
-    P.lane = Math.floor(P.lanes / 2); P.face = -1; placePlayer();
+    P.lane = Math.floor(P.lanes / 2); placePlayer();
     show($("startScreen"), false); show($("endScreen"), false); show($("pauseScreen"), false); show($("hud"), true);
     $("saveBtn").disabled = false; $("nameInput").disabled = false; $("saveNote").textContent = "";
     nextTurn();
@@ -686,7 +726,7 @@ h2 { font-family: var(--display); font-weight: 700; font-size: 22px; margin: 0; 
       feedDino(it, g);
       sfx.rawr();
       speak("Dinosaur mà", .95);
-      const pl = $("player"); pl.classList.remove("chomp", "hop"); void pl.offsetWidth; pl.classList.add("hop");
+      setTimeout(() => dinoAct("hop"), 450);
       return;
     }
     if (S.phase !== "play") { feedDino(it, g); return; }
@@ -701,6 +741,7 @@ h2 { font-family: var(--display); font-weight: 700; font-size: 22px; margin: 0; 
       // Wrong egg: the dinosaur spits it out.
       it.frozen = true;
       it.el.classList.add("wrong");
+      dinoAct("yuck");
       setTimeout(() => { it.el.classList.add("missed"); setTimeout(() => removeItem(it), 400); }, 350);
       S.miss++; hud();
       sfx.buzz();
