@@ -1,0 +1,903 @@
+<title>Khủng long đánh vần</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@600;800&display=swap&subset=vietnamese">
+<style>
+/* Layout: a jungle meadow. HUD on top, eggs with rhymes are tossed in arcs, the big dinosaur waits at the bottom to eat the right one. Single bright look on purpose. */
+:root {
+  --sky-top: #7fd1c7;
+  --sky-low: #e3f7e9;
+  --hill: #7cc66b;
+  --hill-dark: #3f8f45;
+  --ink: #1f2d3d;
+  --card: #fffdf6;
+  --egg: #fff6df;
+  --egg-spot: #f3d9a4;
+  --sun: #ffb229;
+  --accent: #2fae5b;
+  --accent-shadow: #1f7a3e;
+  --good: #2fae5b;
+  --bad: #e5484d;
+  --muted: #5b6b7c;
+  --display: "Baloo 2", "Nunito", system-ui, sans-serif;
+  --body: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; overscroll-behavior: none; }
+* { -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
+body {
+  margin: 0; background: var(--sky-top); color: var(--ink); font-family: var(--body);
+  overflow: hidden; user-select: none; -webkit-user-select: none; touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+}
+.app { position: relative; height: 100%; display: flex; flex-direction: column; }
+
+/* HUD */
+.hud {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 14px;
+  padding: 10px 16px; background: color-mix(in srgb, var(--card) 88%, transparent);
+  border-bottom: 3px solid var(--hill-dark); z-index: 5;
+}
+.hud-group { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.stat { font-family: var(--display); font-weight: 700; font-size: clamp(16px, 3.6vw, 22px); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.stat small { font-family: var(--body); font-weight: 800; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-right: 6px; }
+.hearts { letter-spacing: 2px; font-size: clamp(18px, 4vw, 24px); }
+.hearts .lost { filter: grayscale(1); opacity: .3; }
+.btn {
+  font-family: var(--display); font-weight: 700; font-size: 18px; border: 0; border-radius: 999px;
+  padding: 8px 20px; min-height: 48px; background: var(--accent); color: #fff; cursor: pointer;
+  box-shadow: 0 4px 0 var(--accent-shadow); transition: transform .08s;
+}
+.btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--accent-shadow); }
+.btn:focus-visible, .chip:focus-visible, input:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.btn.ghost { background: var(--card); color: var(--ink); box-shadow: 0 4px 0 #c9c2ad; }
+.btn.icon { padding: 8px 0; width: 52px; font-size: 22px; }
+a.btn { text-decoration: none; display: inline-flex; align-items: center; }
+.btn.big { font-size: 26px; padding: 12px 34px; }
+.mode { font-family: var(--body); font-size: 14px; font-weight: 800; color: var(--muted); margin-left: 6px; }
+.pause-card { align-items: center; text-align: center; }
+.pause-card .row { justify-content: center; }
+
+/* Jungle */
+.arena {
+  position: relative; flex: 1; overflow: hidden; touch-action: none;
+  background:
+    radial-gradient(circle at 88% 14%, var(--sun) 0 34px, transparent 36px),
+    radial-gradient(ellipse 60% 22% at 20% 104%, var(--hill-dark) 0 98%, transparent 100%),
+    radial-gradient(ellipse 70% 26% at 85% 108%, var(--hill) 0 98%, transparent 100%),
+    linear-gradient(var(--sky-top), var(--sky-low));
+}
+.palm { position: absolute; bottom: 0; font-size: clamp(70px, 14vmin, 140px); line-height: 1; opacity: .9; pointer-events: none; }
+.cloud { position: absolute; width: 120px; height: 38px; background: #fff; border-radius: 40px; opacity: .8; }
+.cloud::before, .cloud::after { content: ""; position: absolute; background: #fff; border-radius: 50%; }
+.cloud::before { width: 54px; height: 54px; left: 18px; top: -26px; }
+.cloud::after { width: 40px; height: 40px; left: 60px; top: -18px; }
+
+.bigdino {
+  position: absolute; left: 50%; bottom: 4px; transform: translateX(-50%); z-index: 2; pointer-events: none;
+  font-size: clamp(96px, 20vmin, 180px); line-height: 1; filter: drop-shadow(0 8px 6px rgba(31,45,61,.25));
+}
+.bigdino span { display: inline-block; transform: scaleX(-1); }
+.bigdino.chomp span { animation: chomp .6s; }
+@keyframes chomp { 0%,100%{transform:scaleX(-1) scale(1)} 30%{transform:scaleX(-1) scale(1.25) rotate(-8deg)} 60%{transform:scaleX(-1) scale(.92)} }
+
+.item {
+  position: absolute; left: 0; top: 0; display: grid; place-items: center;
+  border: 0; padding: 0; cursor: pointer; will-change: transform;
+  font-family: var(--display); font-weight: 800; color: var(--ink); line-height: 1; z-index: 3;
+}
+.item::after { content: ""; position: absolute; inset: -14px; border-radius: 50%; }
+.item.egg {
+  border-radius: 50% 50% 46% 46% / 60% 60% 40% 40%;
+  background:
+    radial-gradient(circle at 30% 26%, rgba(255,255,255,.95) 0 10%, transparent 11%),
+    radial-gradient(circle at 72% 30%, var(--egg-spot) 0 6%, transparent 7%),
+    radial-gradient(circle at 24% 64%, var(--egg-spot) 0 5%, transparent 6%),
+    radial-gradient(circle at 78% 72%, var(--egg-spot) 0 7%, transparent 8%),
+    var(--egg);
+  box-shadow: inset -6px -8px 0 rgba(0,0,0,.07), 0 0 0 4px var(--rim), 0 6px 14px rgba(31,45,61,.2);
+  letter-spacing: .01em;
+}
+.item.egg .face { padding-top: 6%; }
+.item.will, .item.kem { border-radius: 999px; letter-spacing: .02em; }
+.item.will {
+  color: var(--ink);
+  background: radial-gradient(circle at 30% 25%, rgba(255,255,255,.7), transparent 45%), linear-gradient(135deg, #ffe066, var(--sun) 55%, #ff7a2f);
+  box-shadow: 0 0 0 4px #fff, 0 0 22px 6px rgba(255,200,40,.85), 0 6px 14px rgba(31,45,61,.2);
+}
+.item.will::before { content: "✨"; position: absolute; top: -18px; right: -10px; font-size: 28px; }
+.item.kem {
+  color: #fff; text-shadow: 0 2px 0 rgba(160,30,90,.35);
+  background: radial-gradient(circle at 30% 25%, rgba(255,255,255,.7), transparent 45%), linear-gradient(135deg, #ffb3d9, #f15bb5 55%, #b5179e);
+  box-shadow: 0 0 0 4px #fff, 0 0 22px 6px rgba(241,91,181,.75), 0 6px 14px rgba(31,45,61,.2);
+}
+.item.kem::before { content: "🌸"; position: absolute; top: -18px; right: -10px; font-size: 28px; }
+.item.dino { background: none; filter: drop-shadow(0 6px 6px rgba(31,45,61,.25)); }
+.item.dino span { display: block; transform: scaleX(-1); }
+.item.deco { pointer-events: none; opacity: .55; }
+.item .face { display: block; transition: transform .2s; }
+.item.wrong .face { animation: shake .4s; }
+.item.wrong { --rim: var(--bad) !important; background: #ffd9d9 !important; }
+.item.eaten { transition: transform .45s ease-in, opacity .45s ease-in; opacity: 0; }
+.item.caught .face { animation: pop .6s forwards; }
+.item.jump .face { animation: jump .6s; }
+@keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-10px)} 40%{transform:translateX(10px)} 60%{transform:translateX(-7px)} 80%{transform:translateX(7px)} }
+@keyframes pop { 0%{transform:scale(1)} 50%{transform:scale(1.5)} 100%{transform:scale(1.25)} }
+@keyframes jump { 0%,100%{transform:translateY(0) rotate(0)} 40%{transform:translateY(-60px) rotate(-12deg)} 70%{transform:translateY(-20px) rotate(6deg)} }
+
+.spark { position: absolute; width: 12px; height: 12px; border-radius: 3px; pointer-events: none; z-index: 4;
+  animation: burst .9s ease-out forwards; }
+@keyframes burst { to { transform: translate(var(--dx), var(--dy)) rotate(540deg); opacity: 0; } }
+
+.toast {
+  position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%);
+  font-family: var(--display); font-weight: 800; font-size: clamp(30px, 7vw, 56px); text-align: center; line-height: 1.1;
+  color: var(--ink); background: var(--card); padding: 14px 30px; border-radius: 28px;
+  box-shadow: 0 8px 0 rgba(31,45,61,.15); z-index: 6; max-width: calc(100% - 32px); text-wrap: balance; pointer-events: none;
+}
+.toast .sub { display: block; font-family: var(--body); font-size: clamp(15px, 3vw, 20px); font-weight: 800; color: var(--muted); margin-top: 6px; }
+.toast .big { font-size: 1.7em; color: var(--accent); display: block; }
+.toast .parts { display: flex; gap: .3em; justify-content: center; align-items: center; font-size: 1.2em; }
+.toast .parts b { background: #e8f6ea; color: var(--hill-dark); border-radius: 14px; padding: 0 .3em; }
+.toast .parts b.fin { background: #fff0d6; color: #b25e00; }
+
+/* Overlay cards */
+.overlay {
+  position: absolute; inset: 0; z-index: 10; display: grid; place-items: center;
+  padding: 16px; overflow-y: auto; background: rgba(31,45,61,.18);
+}
+.card {
+  width: min(680px, 100%); background: var(--card); border-radius: 28px; padding: 24px clamp(18px, 4vw, 32px);
+  box-shadow: 0 10px 0 rgba(31,45,61,.18); display: flex; flex-direction: column; gap: 16px;
+}
+h1 { font-family: var(--display); font-weight: 800; font-size: clamp(36px, 8vw, 58px); line-height: 1; margin: 0; text-wrap: balance; }
+h1 .a { color: var(--accent); } h1 .b { color: #b25e00; }
+h2 { font-family: var(--display); font-weight: 700; font-size: 22px; margin: 0; }
+.lead { margin: 0; font-size: 17px; line-height: 1.45; color: var(--muted); max-width: 52ch; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.label { font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.chip {
+  font-family: var(--display); font-weight: 700; font-size: 18px; padding: 6px 16px; border-radius: 999px;
+  border: 3px solid var(--hill-dark); background: transparent; color: var(--ink); cursor: pointer;
+  min-height: 48px; min-width: 64px;
+}
+.chip[aria-pressed="true"] { background: var(--hill-dark); color: #fff; }
+.chip small { display: block; font-family: var(--body); font-size: 11px; font-weight: 800; opacity: .75; margin-top: -2px; }
+.sets { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.sets .chip { border-radius: 18px; text-align: left; padding: 6px 12px; }
+
+.results { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.res { text-align: center; padding: 10px 6px; border-radius: 18px; background: #f2ecd9; min-width: 0; }
+.res b { display: block; font-family: var(--display); font-size: clamp(22px, 6vw, 34px); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.res span { font-size: 12px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.stars { font-size: 34px; letter-spacing: 4px; text-align: center; }
+.stars .off { filter: grayscale(1); opacity: .25; }
+.turns { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.turns span { min-width: 44px; height: 36px; padding: 0 10px; border-radius: 999px; display: grid; place-items: center; font-family: var(--display); font-weight: 800; color: #fff; font-size: 18px; }
+.review { background: #fff0d6; border-radius: 18px; padding: 10px 14px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.review b { font-family: var(--display); font-size: 20px; }
+.review button { font-family: var(--display); font-weight: 800; font-size: 20px; border: 0; border-radius: 12px; padding: 4px 12px; background: #fff; color: #b25e00; cursor: pointer; min-height: 44px; }
+
+.save { display: flex; gap: 10px; flex-wrap: wrap; }
+.save input {
+  flex: 1 1 180px; min-width: 0; font: 700 20px var(--display); padding: 8px 16px; border-radius: 999px;
+  border: 3px solid var(--hill-dark); background: #fff; color: var(--ink);
+}
+.note { font-size: 14px; color: var(--muted); margin: 0; min-height: 1.2em; }
+
+.board { display: flex; flex-direction: column; gap: 6px; }
+.board ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.board li {
+  display: grid; grid-template-columns: 34px 1fr auto auto auto; gap: 10px; align-items: center;
+  padding: 6px 10px; border-radius: 14px; font-variant-numeric: tabular-nums;
+}
+.board li:nth-child(odd) { background: #f4efe0; }
+.board li.me { background: #dff3d8; outline: 2px solid var(--accent); }
+.board .rk { font-family: var(--display); font-weight: 800; color: var(--muted); text-align: center; }
+.board .nm { font-weight: 800; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.board .sc { font-family: var(--display); font-weight: 800; }
+.board .tm { color: var(--muted); font-weight: 700; }
+.board .lv { font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: #dbeedd; color: var(--hill-dark); white-space: nowrap; max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
+.board .empty { color: var(--muted); padding: 8px 4px; display: block; }
+
+@media (max-width: 520px) { .board li { grid-template-columns: 28px 1fr auto auto; } .board .lv { display: none; } }
+
+/* Tablet (iPad portrait and landscape): bigger HUD and text for small hands */
+@media (min-width: 700px) and (pointer: coarse), (min-width: 900px) {
+  .hud { padding: 12px 24px; }
+  .stat { font-size: 26px; }
+  .stat small { font-size: 13px; }
+  .hearts { font-size: 28px; }
+  .btn { font-size: 22px; padding: 10px 24px; min-height: 56px; }
+  .btn.icon { width: 60px; font-size: 26px; }
+  .btn.big { font-size: 30px; padding: 14px 40px; }
+  .chip { font-size: 22px; min-height: 56px; }
+  .lead { font-size: 20px; }
+  .board li { font-size: 18px; padding: 8px 14px; }
+  .save input { font-size: 24px; min-height: 56px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .item.wrong .face, .item.caught .face, .item.jump .face, .bigdino.chomp span { animation: none; }
+  .spark { display: none; }
+}
+</style>
+
+<div class="app">
+  <header class="hud" id="hud" hidden>
+    <div class="hud-group">
+      <div class="stat"><small>Lượt</small><span id="turnTxt">1/10</span></div>
+      <div class="stat"><small>Điểm</small>⭐ <span id="scoreTxt">0</span></div>
+      <div class="stat hearts" id="hearts" aria-label="Số lần thử còn lại"><span>❤️</span><span>❤️</span><span>❤️</span></div>
+    </div>
+    <div class="hud-group">
+      <div class="stat"><small>Thời gian</small><span id="clockTxt">0:00</span></div>
+      <button class="btn ghost" id="replayBtn" type="button" aria-label="Nghe lại vần">🔊 Nghe lại</button>
+      <button class="btn ghost icon" id="pauseBtn" type="button" aria-label="Tạm dừng">⏸️</button>
+      <button class="btn ghost icon" id="restartBtn" type="button" aria-label="Chơi lại từ đầu">↻</button>
+    </div>
+  </header>
+
+  <main class="arena" id="arena">
+    <div class="cloud" style="left:8%;top:12%"></div>
+    <div class="cloud" style="left:52%;top:24%;transform:scale(.7)"></div>
+    <span class="palm" style="left:-10px" aria-hidden="true">🌴</span>
+    <span class="palm" style="right:-6px" aria-hidden="true">🌿</span>
+    <div class="bigdino" id="bigDino" aria-hidden="true"><span>🦖</span></div>
+  </main>
+
+  <!-- Start -->
+  <section class="overlay" id="startScreen">
+    <div class="card">
+      <h1><span class="a">Khủng long</span> <span class="b">đánh vần</span> 🦖🥚</h1>
+      <p class="lead">Nghe cô đánh vần, ví dụ "a – ngờ – ang", rồi chạm đúng quả trứng có vần đó cho khủng long ăn. Mỗi lượt được sai 3 lần. Chạm Will và Kem để bắn pháo hoa!</p>
+      <div class="row"><span class="label">Chọn vần</span></div>
+      <div class="sets" id="setChips" role="group" aria-label="Chọn nhóm vần"></div>
+      <div class="row" role="group" aria-label="Số lượt">
+        <span class="label">Số lượt</span>
+        <button class="chip" type="button" data-turns="5" aria-pressed="false">5 lượt</button>
+        <button class="chip" type="button" data-turns="10" aria-pressed="true">10 lượt</button>
+      </div>
+      <div class="row"><button class="btn big" id="playBtn" type="button">▶ Chơi</button><a class="btn ghost" id="menuLink" href="../" hidden>← Trò chơi khác</a></div>
+      <div class="board">
+        <h2>🏆 Bảng xếp hạng <span class="mode" data-mode></span></h2>
+        <ol id="boardStart"></ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pause -->
+  <section class="overlay" id="pauseScreen" hidden>
+    <div class="card pause-card">
+      <h1>Tạm dừng ⏸</h1>
+      <div class="row">
+        <button class="btn big" id="resumeBtn" type="button">▶ Chơi tiếp</button>
+        <button class="btn ghost" id="pauseRestartBtn" type="button">↻ Chơi lại</button>
+        <button class="btn ghost" id="pauseHomeBtn" type="button">Về đầu</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Result -->
+  <section class="overlay" id="endScreen" hidden>
+    <div class="card">
+      <h1 id="endTitle">Giỏi quá!</h1>
+      <div class="stars" id="starsRow" aria-label="Số sao"></div>
+      <div class="results">
+        <div class="res"><b id="endScore">0/10</b><span>Điểm</span></div>
+        <div class="res"><b id="endTime">0:00</b><span>Thời gian</span></div>
+        <div class="res"><b id="endSet">an · ang</b><span>Nhóm vần</span></div>
+      </div>
+      <div class="turns" id="turnsRow" aria-label="Từng lượt"></div>
+      <div class="review" id="reviewBox" hidden><b>Cần ôn thêm:</b><span id="reviewList" class="row"></span></div>
+      <form class="save" id="saveForm" autocomplete="off">
+        <input id="nameInput" maxlength="16" placeholder="Tên của bé" aria-label="Tên của bé">
+        <button class="btn" id="saveBtn" type="submit">Lưu điểm</button>
+      </form>
+      <p class="note" id="saveNote"></p>
+      <div class="board">
+        <h2>🏆 Bảng xếp hạng <span class="mode" data-mode></span></h2>
+        <ol id="boardEnd"></ol>
+      </div>
+      <div class="row">
+        <button class="btn big" id="againBtn" type="button">↻ Chơi lại</button>
+        <button class="btn ghost" id="homeBtn" type="button">Về đầu</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+  let TURNS = 10;
+  const MAX_MISS = 3;
+
+  // ---------- Vần ----------
+  // A rhyme here is one vowel (âm chính) + an ending (âm cuối). Each part has the name the teacher says.
+  const NUC = { a: "a", "ă": "á", "â": "ớ", e: "e", "ê": "ê", i: "i", o: "o", "ô": "ô", "ơ": "ơ", u: "u", "ư": "ư" };
+  const FIN = { n: "nờ", ng: "ngờ", nh: "nhờ", m: "mờ", t: "tờ", c: "cờ", p: "pờ", ch: "chờ", i: "i", y: "i dài" };
+  const SETS = [
+    { id: "kho", name: "an · ang · anh", note: "Vần hay nhầm", v: ["an", "ang", "anh", "am"] },
+    { id: "nng", name: "Nờ hay ngờ?", note: "n hay ng", v: ["an", "ang", "ăn", "ăng", "ân", "âng", "on", "ong", "ôn", "ông", "un", "ung", "en", "eng"] },
+    { id: "an", name: "an · ăn · ân", note: "và am ăm âm", v: ["an", "ăn", "ân", "am", "ăm", "âm"] },
+    { id: "on", name: "on · ôn · ơn", note: "và om ôm ơm", v: ["on", "ôn", "ơn", "om", "ôm", "ơm"] },
+    { id: "en", name: "en · ên · in · un", note: "và em êm im um", v: ["en", "ên", "in", "un", "em", "êm", "im", "um"] },
+    { id: "ang", name: "ang · ong · ung", note: "ăng âng ông ưng", v: ["ang", "ăng", "âng", "ong", "ông", "ung", "ưng"] },
+    { id: "anh", name: "anh · ênh · inh", note: "và ach êch ich", v: ["anh", "ênh", "inh", "ach", "êch", "ich"] },
+    { id: "at", name: "at · ot · et · ut", note: "ăt ât ôt ơt êt it ưt", v: ["at", "ăt", "ât", "ot", "ôt", "ơt", "et", "êt", "it", "ut", "ưt"] },
+    { id: "ac", name: "ac · oc · uc", note: "ăc âc ôc ưc", v: ["ac", "ăc", "âc", "oc", "ôc", "uc", "ưc"] },
+    { id: "ai", name: "ai · oi · ui", note: "ay ây ôi ơi ưi", v: ["ai", "ay", "ây", "oi", "ôi", "ơi", "ui", "ưi"] },
+  ];
+  const ALL = [...new Set(SETS.flatMap(s => s.v))];
+  SETS.push({ id: "all", name: "Trộn tất cả", note: `${ALL.length} vần`, v: ALL });
+
+  const split = v => [v[0], v.slice(1)];
+  const spell = v => { const [n, f] = split(v); return `${NUC[n]}, ${FIN[f]}, ${v}`; };       // for the voice
+  const spellText = v => { const [n, f] = split(v); return `${NUC[n]} – ${FIN[f]} – ${v}`; };  // for the screen
+
+  const COLORS = ["#2fae5b", "#3a8ee6", "#9b5de5", "#f15bb5", "#00a6a6", "#e0a100", "#ef476f", "#ff7a2f"];
+  const DINOS = ["🦖", "🦕"];
+  const $ = id => document.getElementById(id);
+  const arena = $("arena");
+  const hasSpeech = "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
+
+  let set = SETS[0];
+  const S = { phase: "start", turn: 0, score: 0, miss: 0, target: "", lastTarget: "",
+    elapsed: 0, turnStart: 0, sinceTarget: 0, spawnIn: 0, lockUntil: 0, results: [] };
+  let items = [];
+  let savedId = null;
+
+  // ---------- Sound ----------
+  let ac = null;
+  function audio() {
+    if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch { ac = null; } }
+    if (ac && ac.state === "suspended") ac.resume();
+    return ac;
+  }
+  function tone(f, dur, type = "sine", vol = .18, at = 0, slide) {
+    const c = audio(); if (!c) return;
+    const t = c.currentTime + at, o = c.createOscillator(), g = c.createGain();
+    o.type = type; o.frequency.setValueAtTime(f, t);
+    if (slide) o.frequency.exponentialRampToValueAtTime(slide, t + dur);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t + dur);
+    o.connect(g).connect(c.destination); o.start(t); o.stop(t + dur + .02);
+  }
+  const sfx = {
+    chomp() { tone(200, .12, "square", .1, 0, 120); tone(220, .12, "square", .1, .18, 130); tone(660, .2, "triangle", .18, .36); tone(990, .3, "triangle", .16, .46); },
+    buzz() { tone(180, .35, "square", .07, 0, 90); },
+    rawr() { tone(240, .5, "sawtooth", .12, 0, 70); tone(120, .5, "square", .06, .05, 60); },
+    win()  { [523, 659, 784, 1047].forEach((f, i) => tone(f, .25, "triangle", .2, i * .13)); }
+  };
+
+  // ---------- Speech (Vietnamese voice, "Linh" on iPad) ----------
+  let viVoice = null;
+  function pickVoice() {
+    if (!hasSpeech) return;
+    viVoice = speechSynthesis.getVoices().find(v => /^vi(-|_|$)/i.test(v.lang)) || null;
+  }
+  if (hasSpeech) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+  function speak(text, rate = .8) {
+    if (!hasSpeech) return;
+    try {
+      if (speechSynthesis.speaking || speechSynthesis.pending) speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = "vi-VN"; u.rate = rate; u.pitch = 1.1;
+      if (viVoice) u.voice = viVoice;
+      speechSynthesis.speak(u);
+    } catch {}
+  }
+  const ask = () => speak(`Tìm vần: ${spell(S.target)}.`);
+
+  // ---------- Helpers ----------
+  const rand = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const fmt = sec => { sec = Math.floor(sec); return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`; };
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  function show(el, on) { el.hidden = !on; }
+  function lsGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch {} }
+
+  function toast(html, ms = 1300) {
+    const t = document.createElement("div");
+    t.className = "toast"; t.innerHTML = html;
+    arena.appendChild(t);
+    setTimeout(() => t.remove(), ms);
+  }
+  const partsHtml = v => { const [n, f] = split(v); return `<span class="parts"><b>${esc(n)}</b>+<b class="fin">${esc(f)}</b>=<span>${esc(v)}</span></span>`; };
+
+  function fireworks(x, y) {
+    sfx.win();
+    burst(x, y, 40, 220);
+    const W = arena.clientWidth, H = arena.clientHeight;
+    for (let k = 1; k <= 5; k++) setTimeout(() => {
+      burst(rnd(.12, .88) * W, rnd(.12, .6) * H, 30, 160);
+      tone(rnd(500, 900), .25, "triangle", .12, 0, rnd(1200, 1800));
+    }, k * 220);
+  }
+  function burst(x, y, count = 16, reach = 90) {
+    for (let i = 0; i < count; i++) {
+      const s = document.createElement("div");
+      s.className = "spark";
+      const a = Math.random() * Math.PI * 2, d = reach * (.5 + Math.random() * .7);
+      s.style.left = x + "px"; s.style.top = y + "px";
+      s.style.background = COLORS[i % COLORS.length];
+      s.style.setProperty("--dx", Math.cos(a) * d + "px");
+      s.style.setProperty("--dy", Math.sin(a) * d + "px");
+      arena.appendChild(s);
+      setTimeout(() => s.remove(), 950);
+    }
+  }
+
+  // ---------- Which rhymes come up ----------
+  // Rhymes the child missed come back more often (remembered on this device).
+  let weak = {};
+  try { weak = JSON.parse(lsGet("kl-weak") || "{}") || {}; } catch { weak = {}; }
+  function markWeak(v, missed) {
+    weak[v] = Math.max(0, (weak[v] || 0) + (missed ? 2 : -1));
+    if (!weak[v]) delete weak[v];
+    lsSet("kl-weak", JSON.stringify(weak));
+  }
+  const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = rand(0, i); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  let targetBag = [], bag = [];
+  function nextTarget() {
+    if (!targetBag.length) {
+      // Each rhyme once per round of the bag, plus extra copies of the ones the child finds hard.
+      targetBag = shuffle(set.v.flatMap(v => Array(1 + Math.min(3, Math.floor((weak[v] || 0) / 2))).fill(v)));
+    }
+    let v = targetBag.pop();
+    if (v === S.lastTarget && targetBag.some(x => x !== v)) { targetBag.unshift(v); v = targetBag.pop(); }
+    return v;
+  }
+  // Same vowel with another ending (an / ang / anh) or same ending with another vowel (an / ăn / ân).
+  function confusers(t) {
+    const [n, f] = split(t);
+    return ALL.filter(x => x !== t && (split(x)[0] === n || split(x)[1] === f));
+  }
+  function eggsOnScreen() { return new Set(items.filter(it => it.kind === "egg").map(it => it.value)); }
+  function distractor() {
+    const shown = eggsOnScreen();
+    const ok = x => x !== S.target && !shown.has(x);
+    const close = confusers(S.target).filter(ok);
+    if (close.length && Math.random() < .45) return close[rand(0, close.length - 1)];
+    for (let i = 0; i < 2 * set.v.length; i++) {
+      if (!bag.length) bag = shuffle([...set.v]);
+      const v = bag.pop();
+      if (ok(v)) return v;
+    }
+    const any = ALL.filter(ok);
+    return any.length ? any[rand(0, any.length - 1)] : null;
+  }
+  function flightTime() { return Math.max(2.6, 4.4 - S.turn * 0.15); }
+
+  // ---------- Flying items ----------
+  function geom() {
+    const W = arena.clientWidth, H = arena.clientHeight;
+    const size = Math.round(Math.max(84, Math.min(150, Math.min(W, H) * 0.2)));
+    return { W, H, size };
+  }
+  // Tossed up from the bottom, dropped from the top, or flung in from a side; each a parabola of about T seconds.
+  function launch(sz, T, g) {
+    const { W, H } = g, minX = 8, maxX = Math.max(minX, W - sz - 8);
+    const m = Math.random();
+    let x, y, vx, vy, grav;
+    if (m < .5) {
+      x = rnd(minX, maxX); y = H + 4;
+      const apex = H * rnd(.04, .38), tUp = T * rnd(.42, .55);
+      grav = 2 * (y - apex) / (tUp * tUp); vy = -grav * tUp;
+      vx = (rnd(minX, maxX) - x) / T;
+    } else if (m < .75) {
+      const left = Math.random() < .5;
+      x = left ? rnd(minX, W * .45) : rnd(W * .55 - sz, maxX); y = -sz - 4;
+      vy = rnd(-.05, .12) * H / T;
+      grav = 2 * (H + 10 - y - vy * T) / (T * T);
+      vx = (left ? 1 : -1) * rnd(.15, .5) * W / T;
+    } else {
+      const left = Math.random() < .5;
+      x = left ? -sz : W; y = H * rnd(.45, .85);
+      const apex = H * rnd(.05, .3), tUp = T * rnd(.35, .45);
+      grav = 2 * (y - apex) / (tUp * tUp); vy = -grav * tUp;
+      vx = (left ? 1 : -1) * rnd(.55, 1) * (W + sz) / T;
+    }
+    return { x, y, vx, vy, grav };
+  }
+
+  function spawn(deco = false) {
+    const g = geom();
+    if (items.filter(it => !it.dead).length >= (deco ? 4 : 7)) return false;
+
+    let kind, value = "";
+    if (deco) {
+      kind = Math.random() < .3 ? "dino" : "egg";
+      const shown = eggsOnScreen(), pool = set.v.filter(v => !shown.has(v));
+      value = (pool.length ? pool : set.v)[rand(0, (pool.length ? pool : set.v).length - 1)];
+    } else {
+      S.sinceTarget++;
+      const r = Math.random();
+      const targetShown = eggsOnScreen().has(S.target);
+      const bonus = Math.random() < .5 ? "will" : "kem";
+      if (!items.some(it => it.kind === bonus) && Math.random() < .1) { kind = bonus; }
+      else if (!targetShown && (S.sinceTarget >= 5 || (r < .22 && S.sinceTarget >= 2))) { kind = "egg"; value = S.target; S.sinceTarget = 0; }
+      else if (r < .32) { kind = "dino"; }
+      else { kind = "egg"; value = distractor(); if (!value) return false; }
+    }
+
+    const el = document.createElement("button");
+    el.type = "button";
+    el.className = "item " + kind + (deco ? " deco" : "");
+    el.tabIndex = deco ? -1 : 0;
+    let sz = g.size;
+    if (kind === "egg") {
+      el.style.width = sz * 1.05 + "px"; el.style.height = sz * 1.25 + "px";
+      el.style.setProperty("--rim", COLORS[rand(0, COLORS.length - 1)]);
+      el.style.fontSize = sz * (value.length >= 3 ? .4 : .5) + "px";
+      el.innerHTML = `<span class="face">${esc(value)}</span>`;
+      el.setAttribute("aria-label", `Vần ${value}`);
+    } else if (kind === "will" || kind === "kem") {
+      const label = kind === "will" ? "Will" : "Kem";
+      el.style.width = sz * 1.5 + "px"; el.style.height = sz * .85 + "px";
+      el.style.fontSize = sz * .42 + "px";
+      el.innerHTML = `<span class="face">${label}</span>`;
+      el.setAttribute("aria-label", label);
+    } else {
+      sz = g.size * 1.05;
+      el.style.width = el.style.height = sz + "px";
+      el.style.fontSize = sz * .8 + "px";
+      el.innerHTML = `<span class="face"><span>${DINOS[rand(0, 1)]}</span></span>`;
+      el.setAttribute("aria-label", "Khủng long");
+    }
+    // Will and Kem fly a bit faster than the eggs.
+    const T = deco ? 7 : flightTime() * rnd(.9, 1.15) * (kind === "will" || kind === "kem" ? .65 : 1);
+    const it = { el, kind, value, ...launch(sz, T, g), dead: false, frozen: false, deco,
+      rot: kind === "dino" ? rnd(0, 360) : 0, spin: kind === "dino" ? rnd(-200, 200) : 0,
+      wob: rnd(0, 6.28), sz };
+    place(it);
+    if (!deco) el.addEventListener("pointerdown", e => { e.preventDefault(); tap(it); });
+    if (!deco) el.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tap(it); } });
+    arena.appendChild(el);
+    items.push(it);
+    return true;
+  }
+
+  function place(it) {
+    // Eggs only wobble a little so the letters stay readable; dinosaurs tumble freely.
+    const r = it.kind === "dino" ? it.rot : 12 * Math.sin(it.wob);
+    it.el.style.transform = `translate3d(${it.x}px, ${it.y}px, 0) rotate(${r}deg)`;
+  }
+  function removeItem(it) { it.el.remove(); items = items.filter(x => x !== it); }
+  function clearItems() { items.forEach(it => it.el.remove()); items = []; }
+
+  // The dinosaur at the bottom eats the right egg.
+  function feedDino(it) {
+    const d = $("bigDino").getBoundingClientRect(), a = arena.getBoundingClientRect();
+    const tx = d.left - a.left + d.width * .5 - it.el.offsetWidth / 2;
+    const ty = d.top - a.top + d.height * .3 - it.el.offsetHeight / 2;
+    it.el.classList.add("eaten");
+    it.el.style.transform = `translate3d(${tx}px, ${ty}px, 0) scale(.2)`;
+    setTimeout(() => {
+      removeItem(it);
+      const dino = $("bigDino");
+      dino.classList.remove("chomp"); void dino.offsetWidth; dino.classList.add("chomp");
+    }, 430);
+  }
+
+  // ---------- Game flow ----------
+  let wake = null;
+  async function keepAwake() {
+    try { if (navigator.wakeLock && !wake) { wake = await navigator.wakeLock.request("screen"); wake.addEventListener("release", () => { wake = null; }); } } catch { wake = null; }
+  }
+  // Game-time timers: they wait while the game is paused and are dropped on restart.
+  let timers = [];
+  function later(sec, fn) { timers.push({ at: S.elapsed + sec, fn }); }
+  function runTimers() {
+    const due = timers.filter(t => t.at <= S.elapsed);
+    if (!due.length) return;
+    timers = timers.filter(t => t.at > S.elapsed);
+    due.forEach(t => t.fn());
+  }
+
+  function pauseGame() {
+    if (S.paused || !["intro", "play", "between"].includes(S.phase)) return;
+    S.paused = true;
+    try { speechSynthesis.cancel(); } catch {}
+    show($("pauseScreen"), true);
+  }
+  function resumeGame() {
+    if (!S.paused) return;
+    S.paused = false; last = performance.now();
+    show($("pauseScreen"), false);
+    audio();
+    if (S.phase === "play" || S.phase === "intro") ask();
+  }
+  function goHome() {
+    S.paused = false; timers = [];
+    clearItems();
+    try { speechSynthesis.cancel(); } catch {}
+    try { wake?.release(); } catch {}
+    ["hud", "pauseScreen", "endScreen"].forEach(id => show($(id), false));
+    show($("startScreen"), true);
+    S.phase = "start"; renderBoards();
+    if (serverMode) refreshServer();
+  }
+
+  function startGame() {
+    audio();
+    // iPad Safari only lets speech start from a tap, so say something right now inside the tap.
+    speak("Bắt đầu nào!", .95);
+    keepAwake();
+    clearItems();
+    timers = [];
+    Object.assign(S, { phase: "intro", paused: false, turn: 0, score: 0, miss: 0, lastTarget: "", elapsed: 0, results: [] });
+    savedId = null; bag = []; targetBag = [];
+    show($("startScreen"), false); show($("endScreen"), false); show($("pauseScreen"), false); show($("hud"), true);
+    $("saveBtn").disabled = false; $("nameInput").disabled = false; $("saveNote").textContent = "";
+    nextTurn();
+  }
+
+  function nextTurn() {
+    clearItems();
+    S.turn++;
+    if (S.turn > TURNS) return endGame();
+    S.miss = 0; S.sinceTarget = rand(1, 3);
+    S.target = nextTarget();
+    S.lastTarget = S.target;
+    S.turnStart = S.elapsed;
+    S.phase = "intro";
+    hud();
+    const sub = hasSpeech ? "Nghe cô đánh vần…" : `Tìm vần <span class="big">${esc(S.target)}</span>`;
+    toast(`Lượt ${S.turn}<span class="sub">${sub}</span>`, 1600);
+    later(.3, ask);
+    later(2.2, () => { if (S.phase === "intro") { S.phase = "play"; S.spawnIn = 0; } });
+  }
+
+  function finishTurn(ok) {
+    S.phase = "between";
+    S.results.push({ target: S.target, ok, miss: S.miss, sec: S.elapsed - S.turnStart });
+    markWeak(S.target, !ok || S.miss > 0);
+    later(.8, () => { items.forEach(it => { it.el.style.transition = "opacity .3s"; it.el.style.opacity = "0"; }); });
+    later(ok ? 2.2 : 3.2, nextTurn);
+  }
+
+  function tap(it) {
+    if (it.dead || S.paused) return;
+    const now = performance.now();
+    if (it.kind === "will" || it.kind === "kem") {
+      it.dead = true; it.frozen = true;
+      it.el.classList.add("caught");
+      fireworks(it.x + it.el.offsetWidth / 2, it.y + it.el.offsetHeight / 2);
+      speak(it.kind === "will" ? "Will í ẹ" : "Kem xinh đẹp", .95);
+      setTimeout(() => removeItem(it), 900);
+      return;
+    }
+    if (it.kind === "dino") {
+      sfx.rawr();
+      speak("Dinosaur mà", .95);
+      it.el.classList.remove("jump"); void it.el.offsetWidth; it.el.classList.add("jump");
+      return;
+    }
+    if (S.phase !== "play" || now < S.lockUntil) return;
+    S.lockUntil = now + 500;
+    const cx = it.x + it.el.offsetWidth / 2, cy = it.y + it.el.offsetHeight / 2;
+    if (it.value === S.target) {
+      it.dead = true; it.frozen = true;
+      S.score++; hud();
+      sfx.chomp(); burst(cx, cy);
+      feedDino(it);
+      speak(`Đúng rồi! ${spell(S.target)}!`);
+      toast(`Măm măm! 😋${partsHtml(S.target)}<span class="sub">${esc(spellText(S.target))}</span>`, 1900);
+      finishTurn(true);
+    } else {
+      it.dead = true;
+      it.el.classList.add("wrong");
+      S.miss++; hud();
+      sfx.buzz();
+      setTimeout(() => removeItem(it), 500);
+      if (S.miss >= MAX_MISS) {
+        speak(`Vần đúng là: ${spell(S.target)}.`);
+        toast(`Vần đúng là${partsHtml(S.target)}<span class="sub">${esc(spellText(S.target))}</span>`, 2900);
+        finishTurn(false);
+      } else {
+        speak(`Đây là ${spell(it.value)}. Tìm vần ${S.target} nhé!`);
+        // After the second miss, show how the rhyme is built.
+        if (S.miss === 2) toast(`Gợi ý${partsHtml(S.target)}`, 2400);
+      }
+    }
+  }
+
+  function endGame() {
+    S.phase = "end"; timers = [];
+    clearItems();
+    try { wake?.release(); } catch {}
+    show($("hud"), false);
+    const ratio = S.score / TURNS;
+    const stars = ratio >= .9 ? 3 : ratio >= .6 ? 2 : S.score >= 1 ? 1 : 0;
+    $("endTitle").textContent = stars === 3 ? "Xuất sắc! 🎉" : stars === 2 ? "Giỏi quá! 🦖" : stars === 1 ? "Cố lên nào! 🦕" : "Mình chơi lại nhé! 🦕";
+    $("starsRow").innerHTML = [0, 1, 2].map(i => `<span class="${i < stars ? "" : "off"}">⭐</span>`).join("");
+    $("endScore").textContent = `${S.score}/${TURNS}`;
+    $("endTime").textContent = fmt(S.elapsed);
+    $("endSet").textContent = set.name;
+    $("turnsRow").innerHTML = S.results.map(r =>
+      `<span style="background:${!r.ok ? "var(--bad)" : r.miss ? "#f08c00" : "var(--good)"}" title="${!r.ok ? "Chưa đúng" : r.miss ? `Đúng sau ${r.miss} lần sai` : "Đúng ngay"}">${esc(r.target)}</span>`).join("");
+    const review = [...new Set(S.results.filter(r => !r.ok || r.miss > 0).map(r => r.target))];
+    $("reviewList").replaceChildren(...review.map(v => {
+      const b = document.createElement("button");
+      b.type = "button"; b.textContent = v; b.title = spellText(v);
+      b.addEventListener("click", () => speak(spell(v)));
+      return b;
+    }));
+    show($("reviewBox"), review.length > 0);
+    $("nameInput").value = lsGet("kl-name") || lsGet("fn-name") || "";
+    show($("endScreen"), true);
+    sfx.win();
+    if (serverMode) refreshServer();
+    speak(`Con được ${S.score} trên ${TURNS} điểm. ${stars >= 2 ? "Giỏi quá!" : "Cố lên nhé!"}`, .9);
+    renderBoards();
+  }
+
+  function hud() {
+    $("turnTxt").textContent = `${Math.min(S.turn, TURNS)}/${TURNS}`;
+    $("scoreTxt").textContent = S.score;
+    [...$("hearts").children].forEach((h, i) => h.classList.toggle("lost", i >= MAX_MISS - S.miss));
+  }
+
+  // ---------- Loop ----------
+  let last = performance.now(), decoIn = 0, clockShown = -1;
+  function frame(t) {
+    const dt = Math.min(.05, (t - last) / 1000); last = t;
+    if (S.paused) { requestAnimationFrame(frame); return; }
+    if (S.phase === "intro" || S.phase === "play" || S.phase === "between") {
+      S.elapsed += dt;
+      const s = Math.floor(S.elapsed);
+      if (s !== clockShown) { clockShown = s; $("clockTxt").textContent = fmt(S.elapsed); }
+      runTimers();
+    }
+    if (S.phase === "play") {
+      S.spawnIn -= dt;
+      if (S.spawnIn <= 0) S.spawnIn = spawn() ? Math.max(.45, rnd(.55, 1) - S.turn * .03) : .15;
+    } else if (S.phase === "start") {
+      decoIn -= dt;
+      if (decoIn <= 0) decoIn = spawn(true) ? 1.5 : .3;
+    }
+    const W = arena.clientWidth, H = arena.clientHeight;
+    for (const it of items.slice()) {
+      if (!it.frozen) {
+        it.vy += it.grav * dt;
+        it.x += it.vx * dt; it.y += it.vy * dt;
+        it.rot += it.spin * dt; it.wob += 2.2 * dt;
+        place(it);
+      }
+      if (!it.frozen && ((it.vy > 0 && it.y > H + 10) || it.x < -it.sz - 60 || it.x > W + 60)) removeItem(it);
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  // ---------- Leaderboard ----------
+  // Where scores live: the artifact's shared db, else the Mac mini server (api/scores), else this browser.
+  let db = null, remote = null, serverMode = false;
+  async function refreshServer() {
+    try {
+      const r = await fetch("api/scores", { cache: "no-store" });
+      if (!r.ok) throw 0;
+      const list = await r.json();
+      if (!Array.isArray(list)) throw 0;
+      serverMode = true; remote = list; renderBoards();
+    } catch { serverMode = false; }
+  }
+  function localScores() { try { return JSON.parse(lsGet("kl-scores") || "[]"); } catch { return []; } }
+
+  function allScores() {
+    const list = (remote ?? localScores()).filter(r => r && typeof r.name === "string" && Number.isFinite(r.score) && Number.isFinite(r.timeMs) && (r.turns || 10) === TURNS);
+    return list.sort((a, b) => b.score - a.score || a.timeMs - b.timeMs).slice(0, 10);
+  }
+  function renderBoard(ol) {
+    const rows = allScores();
+    ol.replaceChildren();
+    if (!rows.length) {
+      const li = document.createElement("li"); li.className = "empty";
+      li.textContent = "Chưa có điểm. Chơi một ván rồi lưu tên nhé!";
+      ol.appendChild(li); return;
+    }
+    rows.forEach((r, i) => {
+      const li = document.createElement("li");
+      if (savedId && r.id === savedId) li.className = "me";
+      const cells = [["rk", ["🥇", "🥈", "🥉"][i] || i + 1], ["nm", r.name.slice(0, 16)], ["lv", typeof r.set === "string" ? r.set.slice(0, 40) : ""], ["sc", `${r.score}/${r.turns || 10}`], ["tm", fmt(r.timeMs / 1000)]];
+      for (const [c, v] of cells) { const s = document.createElement("span"); s.className = c; s.textContent = v; li.appendChild(s); }
+      ol.appendChild(li);
+    });
+  }
+  function renderBoards() {
+    document.querySelectorAll("[data-mode]").forEach(m => { m.textContent = `· ${TURNS} lượt`; });
+    renderBoard($("boardStart")); renderBoard($("boardEnd"));
+  }
+
+  async function saveScore(e) {
+    e.preventDefault();
+    const name = $("nameInput").value.trim().slice(0, 16);
+    if (!name) { $("saveNote").textContent = "Nhập tên trước nhé."; $("nameInput").focus(); return; }
+    lsSet("kl-name", name);
+    const rec = { name, score: S.score, timeMs: Math.round(S.elapsed * 1000), turns: TURNS, set: set.name, at: new Date().toISOString() };
+    $("saveBtn").disabled = true;
+    try {
+      if (db) {
+        const ref = await db.collection("scores").add(rec);
+        savedId = ref.id;
+      } else if (serverMode) {
+        const r = await fetch("api/scores", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(rec) });
+        if (!r.ok) throw new Error("save failed");
+        savedId = (await r.json()).id;
+        await refreshServer();
+      } else {
+        const list = localScores();
+        savedId = "l" + Date.now(); list.push({ id: savedId, ...rec });
+        list.sort((a, b) => b.score - a.score || a.timeMs - b.timeMs);
+        lsSet("kl-scores", JSON.stringify(list.slice(0, 50)));
+      }
+      $("nameInput").disabled = true;
+      $("saveNote").textContent = `Đã lưu điểm cho ${name}!`;
+      renderBoards();
+    } catch (err) {
+      $("saveBtn").disabled = false;
+      $("saveNote").textContent = err?.code === "quota_exceeded" ? "Bảng xếp hạng đã đầy." : "Chưa lưu được điểm. Thử lại nhé.";
+    }
+  }
+
+  (async () => {
+    renderBoards();
+    if (window.claude?.use) {
+      try { db = await window.claude.use("db"); } catch { db = null; }
+    }
+    if (!db) { if (location.protocol.startsWith("http")) await refreshServer(); return; }
+    db.collection("scores").orderBy("score", "desc").limit(500).onSnapshot(
+      snap => { remote = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderBoards(); },
+      () => { db = null; remote = null; renderBoards(); }
+    );
+  })();
+
+  // ---------- iPad: stop pinch-zoom from interrupting play (touch-action blocks double-tap zoom) ----------
+  ["gesturestart", "gesturechange"].forEach(t => document.addEventListener(t, e => e.preventDefault(), { passive: false }));
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) pauseGame();
+    else if (S.phase !== "start" && S.phase !== "end") keepAwake();
+  });
+
+  // ---------- Wiring ----------
+  // Back to the game menu only when served from the Mac mini site (/khung-long-danh-van/).
+  if (/\/khung-long-danh-van\/?(index\.html)?$/.test(location.pathname)) $("menuLink").hidden = false;
+
+  const setChips = $("setChips");
+  SETS.forEach(s => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "chip"; b.dataset.set = s.id;
+    b.innerHTML = `${esc(s.name)}<small>${esc(s.note)}</small>`;
+    b.setAttribute("aria-pressed", String(s === set));
+    b.addEventListener("click", () => {
+      set = s;
+      setChips.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", String(c === b)));
+      lsSet("kl-set", s.id);
+      clearItems(); decoIn = 0;
+    });
+    setChips.appendChild(b);
+  });
+  const savedSet = SETS.find(s => s.id === lsGet("kl-set"));
+  if (savedSet) setChips.querySelector(`[data-set="${savedSet.id}"]`).click();
+
+  $("playBtn").addEventListener("click", startGame);
+  $("againBtn").addEventListener("click", startGame);
+  $("homeBtn").addEventListener("click", goHome);
+  $("pauseHomeBtn").addEventListener("click", goHome);
+  $("pauseBtn").addEventListener("click", pauseGame);
+  $("resumeBtn").addEventListener("click", resumeGame);
+  $("restartBtn").addEventListener("click", startGame);
+  $("pauseRestartBtn").addEventListener("click", startGame);
+  document.querySelectorAll(".chip[data-turns]").forEach(ch => ch.addEventListener("click", () => {
+    TURNS = +ch.dataset.turns;
+    document.querySelectorAll(".chip[data-turns]").forEach(c => c.setAttribute("aria-pressed", String(c === ch)));
+    lsSet("kl-turns", String(TURNS));
+    renderBoards();
+  }));
+  const savedTurns = +lsGet("kl-turns");
+  if (savedTurns === 5 || savedTurns === 10) document.querySelector(`.chip[data-turns="${savedTurns}"]`).click();
+  $("replayBtn").addEventListener("click", () => { if (!S.paused && (S.phase === "play" || S.phase === "intro")) ask(); });
+  $("saveForm").addEventListener("submit", saveScore);
+})();
+</script>
