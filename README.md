@@ -5,7 +5,7 @@ Các game học cho bé, tối ưu cho iPad. Mở trang chủ để chọn game:
 | Đường dẫn | Game |
 |---|---|
 | `/` | Menu chọn game |
-| `/khung-long-danh-van/` | **Khủng long đánh vần**: nghe cô đánh vần "a – ngờ – ang", chạm đúng quả trứng có vần đó cho khủng long ăn |
+| `/khung-long-danh-van/` | **Khủng long đánh vần**: nghe cô đánh vần "a – ngờ – ang", di chuyển khủng long hứng đúng quả trứng có vần đó |
 | `/flying-numbers/` | **Flying Numbers**: nghe số tiếng Anh 1–20, chạm đúng số khi nó bay qua |
 
 Chung cho cả hai game:
@@ -17,6 +17,7 @@ Chung cho cả hai game:
 
 Khủng long đánh vần thêm:
 
+- Cách chơi: trứng có vần rơi chậm từ trên xuống; bấm ◀ ▶ (hoặc phím mũi tên / A D, hoặc vuốt) để khủng long đứng đúng cột có quả trứng cô vừa đánh vần và đớp lấy
 - Chọn nhóm vần: `an · ang · anh` (vần hay nhầm), `Nờ hay ngờ?`, `an ăn ân`, `ang ong ung`, `anh ênh inh`… hoặc trộn tất cả
 - Sai 2 lần thì hiện gợi ý `a + ng = ang`; hết lượt thì cô đánh vần lại vần đúng
 - Vần bé hay sai được nhớ trên máy và ra nhiều hơn ở các ván sau; màn kết quả có mục "Cần ôn thêm"

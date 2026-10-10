@@ -73,20 +73,37 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 .cloud::before { width: 54px; height: 54px; left: 18px; top: -26px; }
 .cloud::after { width: 40px; height: 40px; left: 60px; top: -18px; }
 
-.bigdino {
-  position: absolute; left: 50%; bottom: 4px; transform: translateX(-50%); z-index: 2; pointer-events: none;
-  font-size: clamp(96px, 20vmin, 180px); line-height: 1; filter: drop-shadow(0 8px 6px rgba(31,45,61,.25));
+/* The player's dinosaur walks along the ground, one lane at a time. */
+.lane-glow {
+  position: absolute; top: 0; bottom: 0; left: 0; z-index: 1; pointer-events: none;
+  background: linear-gradient(rgba(255,255,255,0), rgba(255,255,255,.35) 60%, rgba(255,255,255,.55));
+  border-left: 2px dashed rgba(63,143,69,.35); border-right: 2px dashed rgba(63,143,69,.35);
+  transition: transform .18s ease-out;
 }
-.bigdino span { display: inline-block; transform: scaleX(-1); }
-.bigdino.chomp span { animation: chomp .6s; }
-@keyframes chomp { 0%,100%{transform:scaleX(-1) scale(1)} 30%{transform:scaleX(-1) scale(1.25) rotate(-8deg)} 60%{transform:scaleX(-1) scale(.92)} }
+.player {
+  position: absolute; left: 0; bottom: 2px; z-index: 4; pointer-events: none; display: grid; place-items: end center;
+  line-height: 1; filter: drop-shadow(0 8px 6px rgba(31,45,61,.25)); transition: transform .18s ease-out;
+}
+.player span { display: inline-block; transform: scaleX(var(--face, -1)); transition: transform .12s; }
+.player.chomp span { animation: chomp .6s; }
+.player.hop span { animation: hop .5s; }
+@keyframes chomp { 0%,100%{transform:scaleX(var(--face,-1)) scale(1)} 30%{transform:scaleX(var(--face,-1)) scale(1.25) rotate(-8deg)} 60%{transform:scaleX(var(--face,-1)) scale(.92)} }
+@keyframes hop { 0%,100%{transform:scaleX(var(--face,-1)) translateY(0)} 45%{transform:scaleX(var(--face,-1)) translateY(-40px)} }
+
+.move {
+  position: absolute; bottom: 14px; z-index: 7; width: clamp(76px, 12vmin, 110px); height: clamp(76px, 12vmin, 110px);
+  border: 0; border-radius: 50%; background: rgba(255,253,246,.92); color: var(--ink); cursor: pointer;
+  font-size: clamp(34px, 6vmin, 50px); line-height: 1; box-shadow: 0 6px 0 rgba(31,45,61,.2); touch-action: none;
+}
+.move:active, .move.on { transform: translateY(4px); box-shadow: 0 2px 0 rgba(31,45,61,.2); background: #fff; }
+.move:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+#leftBtn { left: 14px; } #rightBtn { right: 14px; }
 
 .item {
-  position: absolute; left: 0; top: 0; display: grid; place-items: center;
-  border: 0; padding: 0; cursor: pointer; will-change: transform;
+  position: absolute; left: 0; top: 0; display: grid; place-items: center; pointer-events: none;
+  border: 0; padding: 0; will-change: transform;
   font-family: var(--display); font-weight: 800; color: var(--ink); line-height: 1; z-index: 3;
 }
-.item::after { content: ""; position: absolute; inset: -14px; border-radius: 50%; }
 .item.egg {
   border-radius: 50% 50% 46% 46% / 60% 60% 40% 40%;
   background:
@@ -118,7 +135,8 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 .item .face { display: block; transition: transform .2s; }
 .item.wrong .face { animation: shake .4s; }
 .item.wrong { --rim: var(--bad) !important; background: #ffd9d9 !important; }
-.item.eaten { transition: transform .45s ease-in, opacity .45s ease-in; opacity: 0; }
+.item.eaten { transition: transform .35s ease-in, opacity .35s ease-in; opacity: 0; }
+.item.missed { transition: opacity .4s; opacity: 0; }
 .item.caught .face { animation: pop .6s forwards; }
 .item.jump .face { animation: jump .6s; }
 @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-10px)} 40%{transform:translateX(10px)} 60%{transform:translateX(-7px)} 80%{transform:translateX(7px)} }
@@ -218,7 +236,8 @@ h2 { font-family: var(--display); font-weight: 700; font-size: 22px; margin: 0; 
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .item.wrong .face, .item.caught .face, .item.jump .face, .bigdino.chomp span { animation: none; }
+  .item.wrong .face, .item.caught .face, .item.jump .face, .player.chomp span, .player.hop span { animation: none; }
+  .player, .lane-glow { transition: none; }
   .spark { display: none; }
 }
 </style>
@@ -243,14 +262,17 @@ h2 { font-family: var(--display); font-weight: 700; font-size: 22px; margin: 0; 
     <div class="cloud" style="left:52%;top:24%;transform:scale(.7)"></div>
     <span class="palm" style="left:-10px" aria-hidden="true">🌴</span>
     <span class="palm" style="right:-6px" aria-hidden="true">🌿</span>
-    <div class="bigdino" id="bigDino" aria-hidden="true"><span>🦖</span></div>
+    <div class="lane-glow" id="laneGlow" aria-hidden="true"></div>
+    <div class="player" id="player" aria-hidden="true"><span>🦖</span></div>
+    <button class="move" id="leftBtn" type="button" aria-label="Sang trái">◀</button>
+    <button class="move" id="rightBtn" type="button" aria-label="Sang phải">▶</button>
   </main>
 
   <!-- Start -->
   <section class="overlay" id="startScreen">
     <div class="card">
       <h1><span class="a">Khủng long</span> <span class="b">đánh vần</span> 🦖🥚</h1>
-      <p class="lead">Nghe cô đánh vần, ví dụ "a – ngờ – ang", rồi chạm đúng quả trứng có vần đó cho khủng long ăn. Mỗi lượt được sai 3 lần. Chạm Will và Kem để bắn pháo hoa!</p>
+      <p class="lead">Nghe cô đánh vần, ví dụ "a – ngờ – ang". Trứng rơi từ trên xuống: bấm ◀ ▶ (hoặc phím mũi tên) để khủng long đứng dưới quả trứng có vần đó và đớp lấy. Mỗi lượt được đớp sai 3 lần. Hứng Will và Kem để bắn pháo hoa!</p>
       <div class="row"><span class="label">Chọn vần</span></div>
       <div class="sets" id="setChips" role="group" aria-label="Chọn nhóm vần"></div>
       <div class="row" role="group" aria-label="Số lượt">
@@ -336,7 +358,6 @@ h2 { font-family: var(--display); font-weight: 700; font-size: 22px; margin: 0; 
   const spellText = v => { const [n, f] = split(v); return `${NUC[n]} – ${FIN[f]} – ${v}`; };  // for the screen
 
   const COLORS = ["#2fae5b", "#3a8ee6", "#9b5de5", "#f15bb5", "#00a6a6", "#e0a100", "#ef476f", "#ff7a2f"];
-  const DINOS = ["🦖", "🦕"];
   const $ = id => document.getElementById(id);
   const arena = $("arena");
   const hasSpeech = "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
@@ -467,47 +488,51 @@ h2 { font-family: var(--display); font-weight: 700; font-size: 22px; margin: 0; 
     const any = ALL.filter(ok);
     return any.length ? any[rand(0, any.length - 1)] : null;
   }
-  function flightTime() { return Math.max(2.6, 4.4 - S.turn * 0.15); }
+  function fallTime() { return Math.max(4.6, 7 - S.turn * 0.22); }   // seconds from top to ground
 
-  // ---------- Flying items ----------
+  // ---------- Lanes, player, falling eggs ----------
+  const P = { lanes: 5, lane: 2, face: -1 };
   function geom() {
     const W = arena.clientWidth, H = arena.clientHeight;
-    const size = Math.round(Math.max(84, Math.min(150, Math.min(W, H) * 0.2)));
-    return { W, H, size };
+    const laneW = W / P.lanes;
+    const size = Math.round(Math.max(72, Math.min(130, laneW * .62, H * .2)));
+    const dino = Math.round(Math.max(90, Math.min(180, laneW * .95, H * .26)));
+    return { W, H, laneW, size, dino };
   }
-  // Tossed up from the bottom, dropped from the top, or flung in from a side; each a parabola of about T seconds.
-  function launch(sz, T, g) {
-    const { W, H } = g, minX = 8, maxX = Math.max(minX, W - sz - 8);
-    const m = Math.random();
-    let x, y, vx, vy, grav;
-    if (m < .5) {
-      x = rnd(minX, maxX); y = H + 4;
-      const apex = H * rnd(.04, .38), tUp = T * rnd(.42, .55);
-      grav = 2 * (y - apex) / (tUp * tUp); vy = -grav * tUp;
-      vx = (rnd(minX, maxX) - x) / T;
-    } else if (m < .75) {
-      const left = Math.random() < .5;
-      x = left ? rnd(minX, W * .45) : rnd(W * .55 - sz, maxX); y = -sz - 4;
-      vy = rnd(-.05, .12) * H / T;
-      grav = 2 * (H + 10 - y - vy * T) / (T * T);
-      vx = (left ? 1 : -1) * rnd(.15, .5) * W / T;
-    } else {
-      const left = Math.random() < .5;
-      x = left ? -sz : W; y = H * rnd(.45, .85);
-      const apex = H * rnd(.05, .3), tUp = T * rnd(.35, .45);
-      grav = 2 * (y - apex) / (tUp * tUp); vy = -grav * tUp;
-      vx = (left ? 1 : -1) * rnd(.55, 1) * (W + sz) / T;
-    }
-    return { x, y, vx, vy, grav };
+  function layoutLanes() {
+    const W = arena.clientWidth;
+    P.lanes = W < 520 ? 3 : W < 860 ? 4 : 5;
+    P.lane = Math.min(P.lane, P.lanes - 1);
+    placePlayer();
+  }
+  function placePlayer() {
+    const g = geom(), pl = $("player"), glow = $("laneGlow");
+    pl.style.width = g.laneW + "px"; pl.style.fontSize = g.dino + "px";
+    pl.style.transform = `translateX(${P.lane * g.laneW}px)`;
+    pl.style.setProperty("--face", P.face);
+    glow.style.width = g.laneW + "px";
+    glow.style.transform = `translateX(${P.lane * g.laneW}px)`;
+  }
+  function move(dir) {
+    if (S.paused || S.phase === "end") return;
+    const next = Math.max(0, Math.min(P.lanes - 1, P.lane + dir));
+    P.face = dir < 0 ? 1 : -1;            // the emoji faces left, so flip it to face where it walks
+    if (next !== P.lane) { P.lane = next; tone(520 + next * 60, .06, "triangle", .08); }
+    placePlayer();
   }
 
   function spawn(deco = false) {
     const g = geom();
-    if (items.filter(it => !it.dead).length >= (deco ? 4 : 7)) return false;
+    if (items.filter(it => !it.dead).length >= (deco ? 3 : P.lanes + 1)) return false;
+    // Lanes whose last egg has fallen far enough, so eggs never stack on top of each other.
+    const free = [];
+    for (let l = 0; l < P.lanes; l++) if (!items.some(it => it.lane === l && it.y < g.size * 1.9)) free.push(l);
+    if (!free.length) return false;
+    const lane = free[rand(0, free.length - 1)];
 
     let kind, value = "";
     if (deco) {
-      kind = Math.random() < .3 ? "dino" : "egg";
+      kind = "egg";
       const shown = eggsOnScreen(), pool = set.v.filter(v => !shown.has(v));
       value = (pool.length ? pool : set.v)[rand(0, (pool.length ? pool : set.v).length - 1)];
     } else {
@@ -516,68 +541,55 @@ h2 { font-family: var(--display); font-weight: 700; font-size: 22px; margin: 0; 
       const targetShown = eggsOnScreen().has(S.target);
       const bonus = Math.random() < .5 ? "will" : "kem";
       if (!items.some(it => it.kind === bonus) && Math.random() < .1) { kind = bonus; }
-      else if (!targetShown && (S.sinceTarget >= 5 || (r < .22 && S.sinceTarget >= 2))) { kind = "egg"; value = S.target; S.sinceTarget = 0; }
-      else if (r < .32) { kind = "dino"; }
+      else if (!targetShown && (S.sinceTarget >= 4 || (r < .3 && S.sinceTarget >= 2))) { kind = "egg"; value = S.target; S.sinceTarget = 0; }
+      else if (r < .4) { kind = "dino"; }
       else { kind = "egg"; value = distractor(); if (!value) return false; }
     }
 
-    const el = document.createElement("button");
-    el.type = "button";
+    const el = document.createElement("div");
     el.className = "item " + kind + (deco ? " deco" : "");
-    el.tabIndex = deco ? -1 : 0;
-    let sz = g.size;
+    let w = g.size, h = g.size;
     if (kind === "egg") {
-      el.style.width = sz * 1.05 + "px"; el.style.height = sz * 1.25 + "px";
+      w = g.size; h = g.size * 1.2;
       el.style.setProperty("--rim", COLORS[rand(0, COLORS.length - 1)]);
-      el.style.fontSize = sz * (value.length >= 3 ? .4 : .5) + "px";
+      el.style.fontSize = g.size * (value.length >= 3 ? .38 : .48) + "px";
       el.innerHTML = `<span class="face">${esc(value)}</span>`;
-      el.setAttribute("aria-label", `Vần ${value}`);
     } else if (kind === "will" || kind === "kem") {
-      const label = kind === "will" ? "Will" : "Kem";
-      el.style.width = sz * 1.5 + "px"; el.style.height = sz * .85 + "px";
-      el.style.fontSize = sz * .42 + "px";
-      el.innerHTML = `<span class="face">${label}</span>`;
-      el.setAttribute("aria-label", label);
+      w = Math.min(g.laneW * .95, g.size * 1.45); h = g.size * .8;
+      el.style.fontSize = h * .5 + "px";
+      el.innerHTML = `<span class="face">${kind === "will" ? "Will" : "Kem"}</span>`;
     } else {
-      sz = g.size * 1.05;
-      el.style.width = el.style.height = sz + "px";
-      el.style.fontSize = sz * .8 + "px";
-      el.innerHTML = `<span class="face"><span>${DINOS[rand(0, 1)]}</span></span>`;
-      el.setAttribute("aria-label", "Khủng long");
+      el.style.fontSize = g.size * .8 + "px";
+      el.innerHTML = `<span class="face"><span>🦕</span></span>`;   // a different dinosaur from the player's 🦖
     }
-    // Will and Kem fly a bit faster than the eggs.
-    const T = deco ? 7 : flightTime() * rnd(.9, 1.15) * (kind === "will" || kind === "kem" ? .65 : 1);
-    const it = { el, kind, value, ...launch(sz, T, g), dead: false, frozen: false, deco,
-      rot: kind === "dino" ? rnd(0, 360) : 0, spin: kind === "dino" ? rnd(-200, 200) : 0,
-      wob: rnd(0, 6.28), sz };
-    place(it);
-    if (!deco) el.addEventListener("pointerdown", e => { e.preventDefault(); tap(it); });
-    if (!deco) el.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tap(it); } });
+    el.style.width = w + "px"; el.style.height = h + "px";
+    // Will and Kem fall faster than the eggs.
+    const T = deco ? 9 : fallTime() * rnd(.92, 1.08) * (kind === "will" || kind === "kem" ? .6 : 1);
+    const it = { el, kind, value, lane, w, h, y: -h - 4, vy: (g.H + h) / T, dead: false, frozen: false, deco,
+      wob: rnd(0, 6.28), rot: kind === "dino" ? rnd(0, 360) : 0, spin: kind === "dino" ? rnd(-160, 160) : 0 };
+    place(it, g);
     arena.appendChild(el);
     items.push(it);
     return true;
   }
 
-  function place(it) {
-    // Eggs only wobble a little so the letters stay readable; dinosaurs tumble freely.
-    const r = it.kind === "dino" ? it.rot : 12 * Math.sin(it.wob);
-    it.el.style.transform = `translate3d(${it.x}px, ${it.y}px, 0) rotate(${r}deg)`;
+  function place(it, g = geom()) {
+    const x = it.lane * g.laneW + (g.laneW - it.w) / 2;
+    const r = it.kind === "dino" ? it.rot : 8 * Math.sin(it.wob);   // eggs sway a little, letters stay readable
+    it.el.style.transform = `translate3d(${x}px, ${it.y}px, 0) rotate(${r}deg)`;
   }
   function removeItem(it) { it.el.remove(); items = items.filter(x => x !== it); }
   function clearItems() { items.forEach(it => it.el.remove()); items = []; }
 
-  // The dinosaur at the bottom eats the right egg.
-  function feedDino(it) {
-    const d = $("bigDino").getBoundingClientRect(), a = arena.getBoundingClientRect();
-    const tx = d.left - a.left + d.width * .5 - it.el.offsetWidth / 2;
-    const ty = d.top - a.top + d.height * .3 - it.el.offsetHeight / 2;
+  // The egg slides into the dinosaur's mouth.
+  function feedDino(it, g = geom()) {
+    const x = it.lane * g.laneW + (g.laneW - it.w) / 2;
+    it.frozen = true;
     it.el.classList.add("eaten");
-    it.el.style.transform = `translate3d(${tx}px, ${ty}px, 0) scale(.2)`;
-    setTimeout(() => {
-      removeItem(it);
-      const dino = $("bigDino");
-      dino.classList.remove("chomp"); void dino.offsetWidth; dino.classList.add("chomp");
-    }, 430);
+    it.el.style.transform = `translate3d(${x}px, ${g.H - g.dino * .7}px, 0) scale(.2)`;
+    setTimeout(() => removeItem(it), 360);
+    const pl = $("player");
+    pl.classList.remove("chomp", "hop"); void pl.offsetWidth; pl.classList.add("chomp");
   }
 
   // ---------- Game flow ----------
@@ -628,6 +640,7 @@ h2 { font-family: var(--display); font-weight: 700; font-size: 22px; margin: 0; 
     timers = [];
     Object.assign(S, { phase: "intro", paused: false, turn: 0, score: 0, miss: 0, lastTarget: "", elapsed: 0, results: [] });
     savedId = null; bag = []; targetBag = [];
+    P.lane = Math.floor(P.lanes / 2); P.face = -1; placePlayer();
     show($("startScreen"), false); show($("endScreen"), false); show($("pauseScreen"), false); show($("hud"), true);
     $("saveBtn").disabled = false; $("nameInput").disabled = false; $("saveNote").textContent = "";
     nextTurn();
@@ -657,40 +670,40 @@ h2 { font-family: var(--display); font-weight: 700; font-size: 22px; margin: 0; 
     later(ok ? 2.2 : 3.2, nextTurn);
   }
 
-  function tap(it) {
-    if (it.dead || S.paused) return;
-    const now = performance.now();
+  // An item reached the ground in the dinosaur's lane.
+  function catchIt(it) {
+    if (it.dead) return;
+    it.dead = true;
+    const g = geom();
+    const cx = it.lane * g.laneW + g.laneW / 2, cy = g.H - g.dino * .6;
     if (it.kind === "will" || it.kind === "kem") {
-      it.dead = true; it.frozen = true;
-      it.el.classList.add("caught");
-      fireworks(it.x + it.el.offsetWidth / 2, it.y + it.el.offsetHeight / 2);
+      feedDino(it, g);
+      fireworks(cx, cy);
       speak(it.kind === "will" ? "Will í ẹ" : "Kem xinh đẹp", .95);
-      setTimeout(() => removeItem(it), 900);
       return;
     }
     if (it.kind === "dino") {
+      feedDino(it, g);
       sfx.rawr();
       speak("Dinosaur mà", .95);
-      it.el.classList.remove("jump"); void it.el.offsetWidth; it.el.classList.add("jump");
+      const pl = $("player"); pl.classList.remove("chomp", "hop"); void pl.offsetWidth; pl.classList.add("hop");
       return;
     }
-    if (S.phase !== "play" || now < S.lockUntil) return;
-    S.lockUntil = now + 500;
-    const cx = it.x + it.el.offsetWidth / 2, cy = it.y + it.el.offsetHeight / 2;
+    if (S.phase !== "play") { feedDino(it, g); return; }
     if (it.value === S.target) {
-      it.dead = true; it.frozen = true;
       S.score++; hud();
+      feedDino(it, g);
       sfx.chomp(); burst(cx, cy);
-      feedDino(it);
       speak(`Đúng rồi! ${spell(S.target)}!`);
       toast(`Măm măm! 😋${partsHtml(S.target)}<span class="sub">${esc(spellText(S.target))}</span>`, 1900);
       finishTurn(true);
     } else {
-      it.dead = true;
+      // Wrong egg: the dinosaur spits it out.
+      it.frozen = true;
       it.el.classList.add("wrong");
+      setTimeout(() => { it.el.classList.add("missed"); setTimeout(() => removeItem(it), 400); }, 350);
       S.miss++; hud();
       sfx.buzz();
-      setTimeout(() => removeItem(it), 500);
       if (S.miss >= MAX_MISS) {
         speak(`Vần đúng là: ${spell(S.target)}.`);
         toast(`Vần đúng là${partsHtml(S.target)}<span class="sub">${esc(spellText(S.target))}</span>`, 2900);
@@ -752,20 +765,24 @@ h2 { font-family: var(--display); font-weight: 700; font-size: 22px; margin: 0; 
     }
     if (S.phase === "play") {
       S.spawnIn -= dt;
-      if (S.spawnIn <= 0) S.spawnIn = spawn() ? Math.max(.45, rnd(.55, 1) - S.turn * .03) : .15;
+      if (S.spawnIn <= 0) S.spawnIn = spawn() ? Math.max(.9, rnd(1.1, 1.7) - S.turn * .04) : .2;
     } else if (S.phase === "start") {
       decoIn -= dt;
-      if (decoIn <= 0) decoIn = spawn(true) ? 1.5 : .3;
+      if (decoIn <= 0) decoIn = spawn(true) ? 2 : .3;
     }
-    const W = arena.clientWidth, H = arena.clientHeight;
+    const g = geom();
+    const mouthY = g.H - g.dino * .75;           // where an egg meets the dinosaur
     for (const it of items.slice()) {
-      if (!it.frozen) {
-        it.vy += it.grav * dt;
-        it.x += it.vx * dt; it.y += it.vy * dt;
-        it.rot += it.spin * dt; it.wob += 2.2 * dt;
-        place(it);
+      if (it.frozen) continue;
+      it.y += it.vy * dt;
+      it.wob += 2 * dt; it.rot += it.spin * dt;
+      place(it, g);
+      if (it.dead) continue;
+      if (!it.deco && S.phase !== "start" && it.lane === P.lane && it.y + it.h >= mouthY && it.y + it.h * .5 < g.H) {
+        catchIt(it);
+      } else if (it.y > g.H + 4) {
+        removeItem(it);                          // a missed egg costs nothing; the right one comes back
       }
-      if (!it.frozen && ((it.vy > 0 && it.y > H + 10) || it.x < -it.sz - 60 || it.x > W + 60)) removeItem(it);
     }
     requestAnimationFrame(frame);
   }
@@ -859,6 +876,33 @@ h2 { font-family: var(--display); font-weight: 700; font-size: 22px; margin: 0; 
     if (document.hidden) pauseGame();
     else if (S.phase !== "start" && S.phase !== "end") keepAwake();
   });
+
+  // ---------- Controls: arrow keys / A D, the ◀ ▶ buttons (hold to keep walking), or a swipe ----------
+  document.addEventListener("keydown", e => {
+    if (e.target.closest && e.target.closest("input")) return;
+    if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") { e.preventDefault(); move(-1); }
+    else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") { e.preventDefault(); move(1); }
+    else if ((e.key === " " || e.key === "Escape") && ["intro", "play", "between"].includes(S.phase)) { e.preventDefault(); S.paused ? resumeGame() : pauseGame(); }
+  });
+  [["leftBtn", -1], ["rightBtn", 1]].forEach(([id, dir]) => {
+    const b = $(id); let rep = null;
+    const stop = () => { clearInterval(rep); rep = null; b.classList.remove("on"); };
+    b.addEventListener("pointerdown", e => {
+      e.preventDefault(); audio(); move(dir); b.classList.add("on");
+      clearInterval(rep); rep = setInterval(() => move(dir), 260);
+    });
+    ["pointerup", "pointercancel", "pointerleave"].forEach(t => b.addEventListener(t, stop));
+    b.addEventListener("click", e => e.preventDefault());
+  });
+  let swipeX = null;
+  arena.addEventListener("pointerdown", e => { if (!e.target.closest(".move")) swipeX = e.clientX; });
+  arena.addEventListener("pointerup", e => {
+    if (swipeX === null) return;
+    const dx = e.clientX - swipeX; swipeX = null;
+    if (Math.abs(dx) > 40) move(dx < 0 ? -1 : 1);
+  });
+  window.addEventListener("resize", () => { layoutLanes(); items.forEach(it => place(it)); });
+  layoutLanes();
 
   // ---------- Wiring ----------
   // Back to the game menu only when served from the Mac mini site (/khung-long-danh-van/).
